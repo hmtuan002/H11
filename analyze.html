@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Analyze Word File with Gemini</title>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+</head>
+<body>
+  <h2>Chọn file Word từ GitHub để phân tích</h2>
+  <select id="fileSelect"></select>
+  <button onclick="analyzeFile()">Phân tích</button>
+  <div id="result" style="white-space: pre-wrap; padding: 10px;"></div>
+
+  <script>
+    const GITHUB_USERNAME = "hmtuan002";        // 👈 Thay bằng GitHub của bạn
+    const GITHUB_REPO = "H11";              // 👈 Tên repository đã tạo
+    const GITHUB_TOKEN = "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"; // 👈 Token PAT của bạn
+    const GEMINI_API_KEY = "AIzaSyAn9dMMM5u8dEGpI8mEzQvdMSuI8KFH8jM";       // 👈 Lấy từ Google AI Studio
+
+    async function loadFiles() {
+      const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/docs`;
+      const res = await fetch(url, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}` }
+      });
+
+      const files = await res.json();
+      const select = document.getElementById("fileSelect");
+      files.forEach(file => {
+        const option = document.createElement("option");
+        option.value = file.download_url;
+        option.innerText = file.name;
+        select.appendChild(option);
+      });
+    }
+
+    async function analyzeFile() {
+      const url = document.getElementById("fileSelect").value;
+      const res = await fetch(url);
+      const blob = await res.blob();
+
+      mammoth.extractRawText({ arrayBuffer: await blob.arrayBuffer() })
+        .then(async function(result) {
+          const text = result.value;
+
+          // Gửi văn bản đến Gemini để phân tích
+          const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Phân tích nội dung sau:\n\n${text}` }] }]
+            })
+          });
+
+          const data = await geminiRes.json();
+          const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "Không có phản hồi từ Gemini";
+          document.getElementById("result").innerText = output;
+        });
+    }
+
+    loadFiles();
+  </script>
+</body>
+</html>
