@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Word File to GitHub</title>
+</head>
+<body>
+  <h2>Upload Word File</h2>
+  <input type="file" id="wordFile" accept=".docx">
+  <button onclick="uploadFile()">Upload</button>
+
+  <script>
+    const GITHUB_USERNAME = "hmtuan002";        // 👈 Thay bằng GitHub của bạn
+    const GITHUB_REPO = "H11";              // 👈 Tên repository đã tạo
+    const GITHUB_TOKEN = "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"; // 👈 Token PAT của bạn
+
+    async function uploadFile() {
+      const fileInput = document.getElementById('wordFile');
+      const file = fileInput.files[0];
+      if (!file) return alert("Vui lòng chọn file .docx");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const base64Data = reader.result.split(',')[1];
+
+        const uploadUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/docs/${file.name}`;
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Upload ${file.name}`,
+            content: base64Data
+          })
+        });
+
+        if (response.ok) {
+          alert("Tải lên thành công!");
+        } else {
+          const error = await response.text();
+          alert("Lỗi khi tải lên: " + error);
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
